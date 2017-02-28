@@ -400,3 +400,8 @@ if getattr(settings, 'ENABLE_ADFS_LOGIN', False):
         url(r'^saml2/complete/$', auth_complete, name='saml2_complete'),
         (r'^saml2/', include('djangosaml2.urls')),
     )
+
+urlpatterns += patterns(
+    '',
+    (r'^onlyoffice/editor-callback/$', onlyoffice_editor_callback),
+)

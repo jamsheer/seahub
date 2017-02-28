@@ -1,0 +1,25 @@
+
+
+{% block main_content %}
+<div id="placeholder"></div>
+{% endblock %}
+
+{% block extra_script %}
+<script type="text/javascript" src="https://13.113.111.2/web-apps/apps/api/documents/api.js"></script>
+<script type="text/javascript">
+
+var config = {
+    "document": {
+        "fileType": "docx",
+        "key": "{{doc_key}}",
+        "title": "Example Document Title.docx",
+        "url": "https://dev.seafile.com/seahub/f/ddeef0c6d7/?raw=1",
+    },
+    "documentType": "text",
+    "editorConfig": {
+        "callbackUrl": "https://dev.seafile.com/seahub/onlyoffice/editor-callback/",
+    },
+}; 
+var docEditor = new DocsAPI.DocEditor("placeholder", config);
+</script>
+{% endblock %}

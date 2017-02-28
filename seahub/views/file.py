@@ -50,7 +50,7 @@ from seahub.utils import render_error, is_org_context, \
     render_permission_error, is_pro_version, is_textual_file, \
     mkstemp, EMPTY_SHA1, HtmlDiff, gen_inner_file_get_url, \
     user_traffic_over_limit, get_file_audit_events_by_path, \
-    generate_file_audit_event_type, FILE_AUDIT_ENABLED
+    generate_file_audit_event_type, FILE_AUDIT_ENABLED, gen_token
 from seahub.utils.ip import get_remote_ip
 from seahub.utils.timeutils import utc_to_local
 from seahub.utils.file_types import (IMAGE, PDF, DOCUMENT, SPREADSHEET, AUDIO,
@@ -425,6 +425,7 @@ def _file_view(request, repo_id, path):
 
     is_locked, locked_by_me = check_file_lock(repo_id, path, username)
 
+
     # check if use office web app to view/edit file
     if is_pro_version() and not repo.encrypted and ENABLE_OFFICE_WEB_APP:
         action_name = None
@@ -469,6 +470,16 @@ def _file_view(request, repo_id, path):
                 c = ret_dict['file_content']
                 ret_dict['file_content'] = convert_md_link(c, repo_id, username)
         elif filetype == DOCUMENT:
+            # ====== ONLYOFFICE related ===========
+            doc_key = gen_token(10)
+            doc_info = json.dumps({'repo_id': repo_id, 'file_path': path,
+                           'username': username})
+            from django.core.cache import cache
+            cache.set("ONLYOFFICE_%s" % doc_key, doc_info, None)
+            return render_to_response('view_file_via_onlyoffice.html', {
+                'doc_key': doc_key}, context_instance=RequestContext(request))
+            # ======================================
+
             handle_document(inner_path, obj_id, fileext, ret_dict)
         elif filetype == SPREADSHEET:
             handle_spreadsheet(inner_path, obj_id, fileext, ret_dict)

@@ -1181,3 +1181,57 @@ def client_token_login(request):
             auth_login(request, user)
 
     return HttpResponseRedirect(request.GET.get("next", reverse('libraries')))
+
+
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def onlyoffice_editor_callback(request):
+    #request.body:
+    # {"key":"Khirz6zTPdfd7","status":1,
+    # "users":["uid-1488351242769"],
+    # "actions":[{"type":1,"userid":"uid-1488351242769"}]}
+
+    # "key":"Khirz6zTPdfd8","status":2,"url":"https://13.113.111.2/cache/files/Khirz6zTPdfd8_6379/output.docx/output.docx?md5=5oL0qGUqXw72D85f28JaFg==&expires=1488956681&disposition=attachment&ooname=output.docx","changesurl":"https://13.113.111.2/cache/files/Khirz6zTPdfd8_6379/changes.zip/changes.zip?md5=vx3VYwaPEOxtZDA_3yuVrg==&expires=1488956681&disposition=attachment&ooname=output.zip","history":{"serverVersion":"4.2.10","changes":[{"created":"2017-03-01 07:03:11","user":{"id":"uid-1488351774447","name":"Anonymous"}}]},"users":["uid-1488351774447"],"actions":[{"type":0,"userid":"uid-1488351774447"}]}
+    logger.warn(request.body)
+    post_data = json.loads(request.body)
+
+    status = int(post_data.get('status', -1))
+    logger.warn(status)
+    if status == 2:             # document is ready for saving
+        # the link to the edited document to be saved with the document storage
+        # service. The link is present when the status value is equal to 2 or 3 only.
+        url = post_data.get('url')
+
+        import urllib2
+        import requests
+        from seaserv import seafile_api
+        from seahub.utils import gen_file_upload_url
+
+        try:
+            file_content = urllib2.urlopen(url).read()
+        except urllib2.URLError as e:
+            logger.error(e)
+        else:
+            # update file
+            doc_key = post_data.get('key')
+            doc_info = json.loads(cache.get("ONLYOFFICE_%s" % doc_key))
+            repo_id = doc_info['repo_id']
+            file_path = doc_info['file_path']
+            username = doc_info['username']
+
+            update_token = seafile_api.get_fileserver_access_token(
+                repo_id, 'dummy', 'update', username)
+            update_url = gen_file_upload_url(update_token, 'update-api')
+            logger.warn(repo_id)
+            logger.warn(username)
+            logger.warn(update_token)
+
+            # files = {
+            #     'file': file_content,
+            #     'file_name': os.path.basename(file_path),
+            #     'target_file': file_path,
+            # }
+            # requests.post(update_url, files=files)
+
+    return HttpResponse('{"error": 0}')
