@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block sub_title %}{% trans "Log In" %} - {% endblock %}
+
+{% block main_content %}
+<div id="login_container"></div>
+{% endblock %}
+
+{% block extra_script %}
+<script src="http://res.wx.qq.com/connect/zh_CN/htmledition/js/wxLogin.js"></script>
+<script>
+ fetch(
+              "http://alphalawyer.cn/ilaw/v2/weixinlogin/getAppIdNew",
+              {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({})
+              })
+              .then(response => response.json())
+              .then(data => {
+                  console.log(JSON.stringify(data))
+                  var d = Object.assign(data.result, {
+                      "id": "login_container",
+                      "redirect_uri" : "http://alphalawyer.cn/wxloginclient/"
+                  });
+                  let obj = new WxLogin(d);
+                  console.log(d);
+              })
+              .catch(e => console.log("Oops, error", e))
+</script>
+{% endblock %}

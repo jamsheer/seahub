@@ -414,3 +414,9 @@ if getattr(settings, 'ENABLE_ADFS_LOGIN', False):
         url(r'^saml2/complete/$', auth_complete, name='saml2_complete'),
         (r'^saml2/', include('djangosaml2.urls')),
     )
+
+urlpatterns += patterns(
+    '',
+    url(r'^accounts/weixin-login/$', weixin_login, name='weixin_login'),
+    url(r'^weixinlogin/$', weixin_login_callback, name='weixin_login_callback'),
+)
