@@ -472,12 +472,17 @@ def _file_view(request, repo_id, path):
         elif filetype == DOCUMENT:
             # ====== ONLYOFFICE related ===========
             doc_key = gen_token(10)
+            doc_title = os.path.basename(path)
+            doc_url =
             doc_info = json.dumps({'repo_id': repo_id, 'file_path': path,
                            'username': username})
             from django.core.cache import cache
             cache.set("ONLYOFFICE_%s" % doc_key, doc_info, None)
             return render_to_response('view_file_via_onlyoffice.html', {
-                'doc_key': doc_key}, context_instance=RequestContext(request))
+                'doc_key': doc_key,
+                'doc_title': doc_title,
+                'doc_url': doc_url,
+            }, context_instance=RequestContext(request))
             # ======================================
 
             handle_document(inner_path, obj_id, fileext, ret_dict)

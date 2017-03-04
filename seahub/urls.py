@@ -403,5 +403,5 @@ if getattr(settings, 'ENABLE_ADFS_LOGIN', False):
 
 urlpatterns += patterns(
     '',
-    (r'^onlyoffice/editor-callback/$', onlyoffice_editor_callback),
+    url(r'^onlyoffice/editor-callback/$', onlyoffice_editor_callback, name='onlyoffice_editor_callback'),
 )

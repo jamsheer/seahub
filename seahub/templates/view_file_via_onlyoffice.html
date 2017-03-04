@@ -12,12 +12,12 @@ var config = {
     "document": {
         "fileType": "docx",
         "key": "{{doc_key}}",
-        "title": "Example Document Title.docx",
-        "url": "https://dev.seafile.com/seahub/f/ddeef0c6d7/?raw=1",
+        "title": "{{doc_title}}",
+        "url": "{{doc_url}}",
     },
     "documentType": "text",
     "editorConfig": {
-        "callbackUrl": "https://dev.seafile.com/seahub/onlyoffice/editor-callback/",
+        "callbackUrl": "{% url "onlyoffice_editor_callback" %}",
     },
 }; 
 var docEditor = new DocsAPI.DocEditor("placeholder", config);
