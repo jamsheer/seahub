@@ -8,10 +8,10 @@
 {% endblock %}
 
 {% block extra_script %}
-<script src="http://res.wx.qq.com/connect/zh_CN/htmledition/js/wxLogin.js"></script>
+<script src="https://res.wx.qq.com/connect/zh_CN/htmledition/js/wxLogin.js"></script>
 <script>
  fetch(
-              "http://alphalawyer.cn/ilaw/v2/weixinlogin/getAppIdNew",
+              "https://alphalawyer.cn/ilaw/v2/weixinlogin/getAppIdNew",
               {
                   method: 'POST',
                   headers: {
@@ -24,7 +24,7 @@
                   console.log(JSON.stringify(data))
                   var d = Object.assign(data.result, {
                       "id": "login_container",
-                      "redirect_uri" : "http://alphalawyer.cn/wxloginclient/"
+                      "redirect_uri" : "https://alphalawyer.cn/wxloginclient/"
                   });
                   let obj = new WxLogin(d);
                   console.log(d);
