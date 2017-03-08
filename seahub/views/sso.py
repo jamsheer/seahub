@@ -1,4 +1,5 @@
 # Copyright (c) 2012-2016 Seafile Ltd.
+# -*- coding: utf-8 -*-
 import logging
 
 from django.conf import settings
@@ -44,7 +45,7 @@ def weixin_login_callback(request):
 
     url = 'https://alphalawyer.cn/ilaw//v2/weixinlogin/weixinLoginCallBackNew'
     values = {
-        'code': '6a929ae024564ae79b9bcbccdf21cc3e',
+        'code': code,
         'state': state,
     }
 
