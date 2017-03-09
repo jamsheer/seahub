@@ -44,6 +44,7 @@ def weixin_login_callback(request):
     import json
     import urllib
     import urllib2
+    from seahub_extra.organizations.views import create_org, get_org_by_url_prefix, set_org_user
 
     url = 'https://test.alphalawyer.cn/ilaw//v2/weixinlogin/weixinLoginCallBackNew'
     values = {
@@ -69,11 +70,10 @@ def weixin_login_callback(request):
             res_code = auth_resp_dto.get('resultCode')
             pic = auth_resp_dto.get('pic')
             mail = auth_resp_dto.get('mail')
-            # username = auth_resp_dto.get('username')
             name = auth_resp_dto.get('name', '')
             user_id = auth_resp_dto.get('userId')  # unique
-            # token = auth_resp_dto.get('token')
-            # refresh_token = auth_resp_dto.get('refreshToken')
+            office_id = auth_resp_dto.get('officeId')
+            office_name = auth_resp_dto.get('officename')
 
             # create new account if possible
             logger.warn('user id: %s' % user_id)
@@ -96,6 +96,15 @@ def weixin_login_callback(request):
 
             u_p.save()
 
+            # create org if possible
+            org_url_prefix = 'org_' + office_id[:10]
+            org = get_org_by_url_prefix(org_url_prefix)
+            if org is None:
+                create_org(office_name, org_url_prefix, 'org_admin@icourt.com')
+                org = get_org_by_url_prefix(org_url_prefix)
+
+            set_org_user(org.org_id, user.username)
+
             if pic:
                 # update user avatar
                 from django.core.files import File
@@ -113,6 +122,7 @@ def weixin_login_callback(request):
                 avatar.save()
                 avatar_updated.send(sender=Avatar, user=user, avatar=avatar)
 
+
             # login user
             for backend in get_backends():
                 user.backend = "%s.%s" % (backend.__module__, backend.__class__.__name__)
@@ -122,4 +132,4 @@ def weixin_login_callback(request):
 
     else:
         # login failed
-        return render_error(request, 'TODO: login failed.')
+        return render_error(request, 'Login failed.')
