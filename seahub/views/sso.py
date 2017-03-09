@@ -9,6 +9,7 @@ from django.http import HttpResponseRedirect, HttpResponse
 from seahub import auth
 from seahub.base.accounts import User
 from seahub.profile.models import Profile
+from seahub.utils import render_error
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -60,8 +61,7 @@ def weixin_login_callback(request):
         result = json_res['result']
         first = result['first']
         if first is True:
-            # 请先去alpha激活帐号 https://www.alphalawyer.cn
-            assert False, '1'
+            return render_error(request, u'请先去alpha激活帐号 https://www.alphalawyer.cn')
         else:
             res_code = result.get('resultCode')
             pic = result.get('pic')
