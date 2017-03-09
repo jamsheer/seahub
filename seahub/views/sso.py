@@ -44,7 +44,7 @@ def weixin_login_callback(request):
     import urllib
     import urllib2
 
-    url = 'https://alphalawyer.cn/ilaw//v2/weixinlogin/weixinLoginCallBackNew'
+    url = 'https://test.alphalawyer.cn/ilaw//v2/weixinlogin/weixinLoginCallBackNew'
     values = {
         'code': code,
         'state': state,
@@ -54,6 +54,7 @@ def weixin_login_callback(request):
     req = urllib2.Request(url, data)
     response = urllib2.urlopen(req)
     the_page = response.read()
+    logger.warn(the_page)
     json_res = json.loads(the_page)
 
     succeed = json_res['succeed']
@@ -63,16 +64,19 @@ def weixin_login_callback(request):
         if first is True:
             return render_error(request, u'请先去alpha激活帐号 https://www.alphalawyer.cn')
         else:
-            res_code = result.get('resultCode')
-            pic = result.get('pic')
-            mail = result.get('mail')
-            # username = result.get('username')
-            name = result.get('name')
-            user_id = result.get('userId')  # unique
-            token = result.get('token')
-            refresh_token = result.get('refreshToken')
+            auth_resp_dto = result['authResponseDto']
+            res_code = auth_resp_dto.get('resultCode')
+            pic = auth_resp_dto.get('pic')
+            mail = auth_resp_dto.get('mail')
+            # username = auth_resp_dto.get('username')
+            name = auth_resp_dto.get('name')
+            user_id = auth_resp_dto.get('userId')  # unique
+            token = auth_resp_dto.get('token')
+            refresh_token = auth_resp_dto.get('refreshToken')
 
             # create new account if possible
+            logger.warn('user id: %s' % user_id)
+            assert user_id is not None
             username = user_id + '@ifile.com'
 
             try:
