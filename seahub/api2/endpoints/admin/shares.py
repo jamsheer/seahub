@@ -29,11 +29,9 @@ def check_parameter(func):
         # argument check
         if request.method == 'GET':
             repo_id = request.GET.get('repo_id', None)
-            path = request.GET.get('path', '/')
             share_type = request.GET.get('share_type', None)
         else:
             repo_id = request.data.get('repo_id', None)
-            path = request.data.get('path', '/')
             share_type = request.data.get('share_type', None)
 
         if not repo_id:
@@ -50,11 +48,7 @@ def check_parameter(func):
             error_msg = 'Library %s not found.' % repo_id
             return api_error(status.HTTP_404_NOT_FOUND, error_msg)
 
-        if not seafile_api.get_dir_id_by_path(repo_id, path):
-            error_msg = 'Folder %s not found.' % path
-            return api_error(status.HTTP_404_NOT_FOUND, error_msg)
-
-        return func(view, request, repo_id, path, share_type, *args, **kwargs)
+        return func(view, request, repo_id, share_type, *args, **kwargs)
 
     return _decorated
 
@@ -64,7 +58,7 @@ class AdminShares(APIView):
     permission_classes = (IsAdminUser,)
 
     @check_parameter
-    def get(self, request, repo_id, path, share_type):
+    def get(self, request, repo_id, share_type):
         """ List user/group shares
 
         Permission checking:
@@ -78,12 +72,8 @@ class AdminShares(APIView):
         repo_owner = seafile_api.get_repo_owner(repo_id)
         if share_type == 'user':
             try:
-                if path == '/':
-                    share_items = seafile_api.list_repo_shared_to(
-                            repo_owner, repo_id)
-                else:
-                    share_items = seafile_api.get_shared_users_for_subdir(
-                            repo_id, path, repo_owner)
+                share_items = seafile_api.list_repo_shared_to(
+                        repo_owner, repo_id)
             except Exception as e:
                 logger.error(e)
                 error_msg = 'Internal Server Error'
@@ -96,7 +86,6 @@ class AdminShares(APIView):
 
                 share_info = {}
                 share_info['repo_id'] = repo_id
-                share_info['path'] = path
                 share_info['share_type'] = share_type
                 share_info['user_email'] = user_email
                 share_info['user_name'] = user_name
@@ -106,12 +95,8 @@ class AdminShares(APIView):
 
         if share_type == 'group':
             try:
-                if path == '/':
-                    share_items = seafile_api.list_repo_shared_group_by_user(
-                            repo_owner, repo_id)
-                else:
-                    share_items = seafile_api.get_shared_groups_for_subdir(
-                            repo_id, path, repo_owner)
+                share_items = seafile_api.list_repo_shared_group_by_user(
+                        repo_owner, repo_id)
             except Exception as e:
                 logger.error(e)
                 error_msg = 'Internal Server Error'
@@ -125,7 +110,6 @@ class AdminShares(APIView):
 
                 share_info = {}
                 share_info['repo_id'] = repo_id
-                share_info['path'] = path
                 share_info['share_type'] = share_type
                 share_info['group_id'] = group_id
                 share_info['group_name'] = group_name
@@ -136,7 +120,7 @@ class AdminShares(APIView):
         return Response(result)
 
     @check_parameter
-    def post(self, request, repo_id, path, share_type):
+    def post(self, request, repo_id, share_type):
         """ Admin share a library to user/group.
 
         Permission checking:
@@ -187,13 +171,8 @@ class AdminShares(APIView):
                     continue
 
                 try:
-                    if path == '/':
-                        seafile_api.share_repo(
-                                repo_id, repo_owner, email, permission)
-                    else:
-                        seafile_api.share_subdir_email(
-                                repo_id, path, repo_owner, email, permission)
-
+                    seafile_api.share_repo(
+                            repo_id, repo_owner, email, permission)
                 except Exception as e:
                     logger.error(e)
                     result['failed'].append({
@@ -203,14 +182,12 @@ class AdminShares(APIView):
 
                     continue
 
-                new_perm = seafile_api.check_permission_by_path(repo_id, path, email)
                 result['success'].append({
                     "repo_id": repo_id,
-                    "path": path,
                     "share_type": share_type,
                     "user_email": email,
                     "user_name": email2nickname(email),
-                    "permission": new_perm
+                    "permission": permission
                 })
 
         if share_type == 'group':
@@ -236,12 +213,8 @@ class AdminShares(APIView):
                     continue
 
                 try:
-                    if path == '/':
-                        seafile_api.set_group_repo(
-                                repo_id, group_id, repo_owner, permission)
-                    else:
-                        seafile_api.share_subdir_to_group(
-                                repo_id, path, repo_owner, group_id, permission)
+                    seafile_api.set_group_repo(
+                            repo_id, group_id, repo_owner, permission)
                 except Exception as e:
                     logger.error(e)
                     result['failed'].append({
@@ -253,7 +226,6 @@ class AdminShares(APIView):
 
                 result['success'].append({
                     "repo_id": repo_id,
-                    "path": path,
                     "share_type": share_type,
                     "group_id": group_id,
                     "group_name": group.group_name,
@@ -263,7 +235,7 @@ class AdminShares(APIView):
         return Response(result)
 
     @check_parameter
-    def put(self, request, repo_id, path, share_type):
+    def put(self, request, repo_id, share_type):
         """ Update user/group share permission.
 
         Permission checking:
@@ -278,7 +250,6 @@ class AdminShares(APIView):
 
         share_info = {}
         share_info['repo_id'] = repo_id
-        share_info['path'] = path
         share_info['share_type'] = share_type
 
         # current `request.user.username` is admin user,
@@ -299,21 +270,16 @@ class AdminShares(APIView):
                 return api_error(status.HTTP_404_NOT_FOUND, error_msg)
 
             try:
-                if path == '/':
-                    seafile_api.set_share_permission(
-                            repo_id, repo_owner, email, permission)
-                else:
-                    seafile_api.update_share_subdir_perm_for_user(
-                            repo_id, path, repo_owner, email, permission)
+                seafile_api.set_share_permission(
+                        repo_id, repo_owner, email, permission)
             except Exception as e:
                 logger.error(e)
                 error_msg = 'Internal Server Error'
                 return api_error(status.HTTP_500_INTERNAL_SERVER_ERROR, error_msg)
 
-            new_perm = seafile_api.check_permission_by_path(repo_id, path, email)
             share_info['user_email'] = email
             share_info['user_name'] = email2nickname(email)
-            share_info['permission'] = new_perm
+            share_info['permission'] = permission
 
         if share_type == 'group':
             group_id = share_to
@@ -329,12 +295,8 @@ class AdminShares(APIView):
                 return api_error(status.HTTP_404_NOT_FOUND, error_msg)
 
             try:
-                if path == '/':
-                    seafile_api.set_group_repo_permission(group_id,
-                            repo_id, permission)
-                else:
-                    seafile_api.update_share_subdir_perm_for_group(
-                            repo_id, path, repo_owner, group_id, permission)
+                seafile_api.set_group_repo_permission(group_id,
+                        repo_id, permission)
             except Exception as e:
                 logger.error(e)
                 error_msg = 'Internal Server Error'
@@ -347,7 +309,7 @@ class AdminShares(APIView):
         return Response(share_info)
 
     @check_parameter
-    def delete(self, request, repo_id, path, share_type):
+    def delete(self, request, repo_id, share_type):
         """ Delete user/group share permission.
 
         Permission checking:
@@ -367,11 +329,7 @@ class AdminShares(APIView):
                 return api_error(status.HTTP_400_BAD_REQUEST, error_msg)
 
             try:
-                if path == '/':
-                    seafile_api.remove_share(repo_id, repo_owner, email)
-                else:
-                    seafile_api.unshare_subdir_for_user(
-                            repo_id, path, repo_owner, email)
+                seafile_api.remove_share(repo_id, repo_owner, email)
             except Exception as e:
                 logger.error(e)
                 error_msg = 'Internal Server Error'
@@ -386,11 +344,7 @@ class AdminShares(APIView):
                 return api_error(status.HTTP_400_BAD_REQUEST, error_msg)
 
             try:
-                if path == '/':
-                    seafile_api.unset_group_repo(repo_id, group_id, repo_owner)
-                else:
-                    seafile_api.unshare_subdir_for_group(
-                            repo_id, path, repo_owner, group_id)
+                seafile_api.unset_group_repo(repo_id, group_id, repo_owner)
             except Exception as e:
                 logger.error(e)
                 error_msg = 'Internal Server Error'
