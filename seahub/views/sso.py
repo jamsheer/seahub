@@ -7,6 +7,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, HttpResponse
 
 from seahub import auth
+from seahub.auth import get_backends
 from seahub.base.accounts import User
 from seahub.profile.models import Profile
 from seahub.utils import render_error
@@ -91,17 +92,14 @@ def weixin_login_callback(request):
             if name:
                 Profile.objects.add_or_update(username, name)
 
-            request.user = user
+            for backend in get_backends():
+                user.backend = "%s.%s" % (backend.__module__, backend.__class__.__name__)
+
             auth.login(request, user)
             return HttpResponseRedirect('/')
 
     else:
         # login failed
         assert False, '2'
-
-
-
-
-    logger.warn(the_page)
 
     return HttpResponse('')
