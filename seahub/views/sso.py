@@ -70,10 +70,10 @@ def weixin_login_callback(request):
             pic = auth_resp_dto.get('pic')
             mail = auth_resp_dto.get('mail')
             # username = auth_resp_dto.get('username')
-            name = auth_resp_dto.get('name')
+            name = auth_resp_dto.get('name', '')
             user_id = auth_resp_dto.get('userId')  # unique
-            token = auth_resp_dto.get('token')
-            refresh_token = auth_resp_dto.get('refreshToken')
+            # token = auth_resp_dto.get('token')
+            # refresh_token = auth_resp_dto.get('refreshToken')
 
             # create new account if possible
             logger.warn('user id: %s' % user_id)
@@ -89,17 +89,37 @@ def weixin_login_callback(request):
                 user = User.objects.create_user(email=username, is_active=True)
                 user.set_unusable_password()
 
-            if name:
-                Profile.objects.add_or_update(username, name)
+            u_p = Profile.objects.add_or_update(username, name)
 
+            if mail:
+                u_p.contact_email = mail
+
+            u_p.save()
+
+            if pic:
+                # update user avatar
+                from django.core.files import File
+                from django.core.files.temp import NamedTemporaryFile
+                from seahub.avatar.models import Avatar
+                from seahub.avatar.signals import avatar_updated
+
+                resp = urllib2.urlopen(pic)
+                img_temp = NamedTemporaryFile(delete=True)
+                img_temp.write(resp.read())
+                img_temp.flush()
+
+                avatar = Avatar(emailuser=username, primary=True)
+                avatar.avatar.save("image.jpg", File(img_temp), save=True)
+                avatar.save()
+                avatar_updated.send(sender=Avatar, user=user, avatar=avatar)
+
+            # login user
             for backend in get_backends():
                 user.backend = "%s.%s" % (backend.__module__, backend.__class__.__name__)
 
             auth.login(request, user)
-            return HttpResponseRedirect('/')
+            return HttpResponseRedirect(settings.SITE_ROOT)
 
     else:
         # login failed
-        assert False, '2'
-
-    return HttpResponse('')
+        return render_error(request, 'TODO: login failed.')
