@@ -1,16 +1,25 @@
 # Copyright (c) 2012-2016 Seafile Ltd.
 # -*- coding: utf-8 -*-
 import logging
+import json
+import urllib
+import urllib2
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.core.files import File
 from django.http import HttpResponseRedirect, HttpResponse
 
 from seahub import auth
 from seahub.auth import get_backends
+from seahub.avatar.models import Avatar
+from seahub.avatar.signals import avatar_updated
 from seahub.base.accounts import User
 from seahub.profile.models import Profile
 from seahub.utils import render_error
+from seahub_extra.organizations.views import (
+    create_org, get_org_by_url_prefix, set_org_user)
+
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -40,11 +49,6 @@ def weixin_login_callback(request):
     state = request.GET.get('state', '')
     if not code or not state:
         assert False, 'TODO'
-
-    import json
-    import urllib
-    import urllib2
-    from seahub_extra.organizations.views import create_org, get_org_by_url_prefix, set_org_user
 
     url = 'https://test.alphalawyer.cn/ilaw//v2/weixinlogin/weixinLoginCallBackNew'
     values = {
@@ -107,21 +111,14 @@ def weixin_login_callback(request):
 
             if pic:
                 # update user avatar
-                from django.core.files import File
-                from django.core.files.temp import NamedTemporaryFile
-                from seahub.avatar.models import Avatar
-                from seahub.avatar.signals import avatar_updated
-
-                resp = urllib2.urlopen(pic)
-                img_temp = NamedTemporaryFile(delete=True)
-                img_temp.write(resp.read())
-                img_temp.flush()
-
+                logger.warn("pic: %s" % pic)
+                result = urllib.urlretrieve(pic)
                 avatar = Avatar(emailuser=username, primary=True)
-                avatar.avatar.save("image.jpg", File(img_temp), save=True)
+                avatar.avatar.save(
+                    'image.jpg', File(open(result[0]))
+                )
                 avatar.save()
                 avatar_updated.send(sender=Avatar, user=user, avatar=avatar)
-
 
             # login user
             for backend in get_backends():
